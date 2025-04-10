@@ -1,0 +1,271 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Juego de Chance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .header {
+            background-color: #343a40;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+        .winner {
+            background-color: #ffc107;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .tab-content {
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-top: 0;
+            margin-bottom: 20px;
+        }
+        .btn-action {
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding: 10px 0;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+        .prize-info {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .numbers-list {
+            column-count: 2;
+            column-gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center">
+            <h1>GESTOR DE JUEGO DE CHANCE</h1>
+            <p class="lead">Sistema de gestión para juegos de chance</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h3>Información de Sorteos</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Sorteo</th>
+                                        <th>Serie</th>
+                                        <th>Premio</th>
+                                        <th>Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sorteo_id, info in sorteos.items() %}
+                                    <tr>
+                                        <td>#{{ sorteo_id }}</td>
+                                        <td>{{ info.serie }}</td>
+                                        <td>${{ "{:,.0f}".format(info.premio) }}</td>
+                                        <td>{{ info.fecha }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h3>Resultados de Sorteos</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="sorteoTabs" role="tablist">
+                            {% for sorteo_id in sorteos %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link {% if loop.first %}active{% endif %}" 
+                                        id="tab-{{ sorteo_id }}" 
+                                        data-bs-toggle="tab" 
+                                        data-bs-target="#content-{{ sorteo_id }}" 
+                                        type="button" 
+                                        role="tab" 
+                                        aria-controls="content-{{ sorteo_id }}" 
+                                        aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                                    Sorteo #{{ sorteo_id }}
+                                </button>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="tab-content" id="sorteoTabsContent">
+                            {% for sorteo_id, boletos in boletos_por_sorteo.items() %}
+                            <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                                 id="content-{{ sorteo_id }}" 
+                                 role="tabpanel" 
+                                 aria-labelledby="tab-{{ sorteo_id }}">
+                                
+                                <div class="prize-info">
+                                    <h4>Datos del Sorteo #{{ sorteo_id }}</h4>
+                                    <p><strong>Serie:</strong> {{ sorteos[sorteo_id].serie }}</p>
+                                    <p><strong>Fecha:</strong> {{ sorteos[sorteo_id].fecha }}</p>
+                                    <p><strong>Premio:</strong> ${{ "{:,.0f}".format(sorteos[sorteo_id].premio) }}</p>
+                                </div>
+                                
+                                {% if sorteo_id in numeros_ganadores %}
+                                    {% set ganador = numeros_ganadores[sorteo_id] %}
+                                    <div class="alert alert-success">
+                                        <h4>🏆 NÚMERO GANADOR: <span class="winner">{{ ganador.numero }}</span></h4>
+                                        <h5>💰 PREMIO: ${{ "{:,.0f}".format(ganador.premio_ajustado) }}</h5>
+                                        
+                                        {% if ganador.premio_ajustado != ganador.premio %}
+                                        <p class="text-danger">
+                                            (Premio dividido por número duplicado en varios sorteos)
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+
+                                <h5>NÚMEROS DE BOLETOS:</h5>
+                                <div class="numbers-list">
+                                    {% for boleto in boletos %}
+                                    <div class="mb-1">
+                                        {% if sorteo_id in numeros_ganadores and boleto.numero == numeros_ganadores[sorteo_id].numero %}
+                                        <span class="winner">{{ boleto.numero }} ✓</span>
+                                        {% else %}
+                                        {{ boleto.numero }}
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap">
+                    <button id="btnSorteo" class="btn btn-primary btn-action">
+                        <i class="bi bi-shuffle"></i> Realizar Sorteo
+                    </button>
+                    <button id="btnExportarCSV" class="btn btn-success btn-action">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Exportar a CSV
+                    </button>
+                    <button id="btnExportarJSON" class="btn btn-warning btn-action">
+                        <i class="bi bi-file-earmark-code"></i> Exportar a JSON
+                    </button>
+                    <button id="btnNuevoJuego" class="btn btn-danger btn-action">
+                        <i class="bi bi-plus-circle"></i> Nuevo Juego
+                    </button>
+                </div>
+
+                <div class="footer text-center">
+                    <p>Estado: 
+                        {% if db_connected %}
+                        <span class="badge bg-success">Conectado a MongoDB Atlas</span>
+                        {% else %}
+                        <span class="badge bg-warning">Funcionando sin conexión a MongoDB</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Realizar sorteo
+            document.getElementById('btnSorteo').addEventListener('click', function() {
+                fetch('/realizar-sorteo', {
+                    method: 'POST',
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al realizar el sorteo');
+                });
+            });
+
+            // Nuevo juego
+            document.getElementById('btnNuevoJuego').addEventListener('click', function() {
+                if (confirm('¿Está seguro de que desea iniciar un nuevo juego?')) {
+                    fetch('/nuevo-juego', {
+                        method: 'POST',
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al iniciar nuevo juego');
+                    });
+                }
+            });
+
+            // Exportar a CSV
+            document.getElementById('btnExportarCSV').addEventListener('click', function() {
+                fetch('/exportar/csv')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.data) {
+                        downloadFile(data.data, data.filename, 'text/csv');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al exportar a CSV');
+                });
+            });
+
+            // Exportar a JSON
+            document.getElementById('btnExportarJSON').addEventListener('click', function() {
+                fetch('/exportar/json')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.data) {
+                        const jsonStr = JSON.stringify(data.data, null, 2);
+                        downloadFile(jsonStr, data.filename, 'application/json');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al exportar a JSON');
+                });
+            });
+
+            // Función para descargar archivo
+            function downloadFile(content, filename, contentType) {
+                const a = document.createElement('a');
+                const blob = new Blob([content], { type: contentType });
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }
+        });
+    </script>
+</body>
+</html>
